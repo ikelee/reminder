@@ -65,6 +65,19 @@ class ObligationManager {
         const obligation = this.obligations.find(o => o.id === id);
         if (obligation) {
             Object.assign(obligation, updates);
+            
+            // Recalculate status if due_at was updated
+            if (updates.due_at !== undefined && obligation.status !== 'done') {
+                const now = new Date();
+                const dueAt = new Date(obligation.due_at);
+                
+                if (dueAt < now) {
+                    obligation.status = 'missed';
+                } else {
+                    obligation.status = 'pending';
+                }
+            }
+            
             this.saveObligations();
             return obligation;
         }

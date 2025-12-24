@@ -210,15 +210,54 @@ class ObligationApp {
     }
 
     async toggleDone(id) {
+        const itemElement = document.querySelector(`[data-id="${id}"]`);
+        const checkbox = itemElement?.querySelector('.obligation-checkbox');
+        
+        if (!itemElement || !checkbox) return;
+        
+        const isBecomingDone = checkbox.checked;
+        
+        // If marking as done, play celebration animation then collapse
+        if (isBecomingDone) {
+            // Add done class for celebration animation
+            itemElement.classList.add('done');
+            // Wait for celebration animation (600ms)
+            await new Promise(resolve => setTimeout(resolve, 600));
+            
+            // Add collapsing class to slide items up
+            itemElement.classList.add('collapsing');
+            // Wait for collapse animation (350ms)
+            await new Promise(resolve => setTimeout(resolve, 350));
+            
+            // Remove from DOM after animation completes
+            itemElement.remove();
+        }
+        
         try {
+            // Update backend
             const response = await fetch(`/api/obligations/${id}/toggle`, {
                 method: 'PATCH'
             });
+            
             if (response.ok) {
+                // Update local data without re-rendering
+                const obligation = this.obligations.find(o => o.id === id);
+                if (obligation) {
+                    obligation.status = obligation.status === 'done' ? 'pending' : 'done';
+                }
+                
+                // Only re-render if unchecking (to show the item again)
+                if (!isBecomingDone) {
+                    await this.loadObligations();
+                }
+            } else {
+                // If API call failed, reload to restore correct state
                 await this.loadObligations();
             }
         } catch (error) {
             console.error('Error toggling obligation:', error);
+            // Reload to restore correct state
+            await this.loadObligations();
         }
     }
 
@@ -333,11 +372,13 @@ class ObligationApp {
         tomorrow.setDate(tomorrow.getDate() + 1);
         const weekFromNow = new Date(today);
         weekFromNow.setDate(weekFromNow.getDate() + 7);
+        const monthFromNow = new Date(today);
+        monthFromNow.setDate(monthFromNow.getDate() + 30);
 
         const groups = {
             now: [],
             today: [],
-            thisWeek: [],
+            soon: [],
             later: [],
             missed: []
         };
@@ -358,7 +399,11 @@ class ObligationApp {
                 } else if (dueAt < tomorrow) {
                     groups.today.push(obligation);
                 } else if (dueAt < weekFromNow) {
-                    groups.thisWeek.push(obligation);
+                    // Due this week
+                    groups.soon.push(obligation);
+                } else if (dueAt < monthFromNow && obligation.estimated_duration) {
+                    // Due within a month AND has estimated duration
+                    groups.soon.push(obligation);
                 } else {
                     groups.later.push(obligation);
                 }
@@ -387,58 +432,89 @@ class ObligationApp {
         }
 
         const groups = this.groupByTimeHorizon(this.obligations);
-        let html = '';
-
-        if (groups.missed.length > 0) {
-            html += this.renderGroup('Missed', groups.missed, 'missed');
+        
+        // Combine urgent items (missed, now, today, immediate urgency)
+        const urgentItems = [
+            ...groups.missed,
+            ...groups.now,
+            ...groups.today,
+            ...this.obligations.filter(o => o.urgency === 'immediate' && o.status !== 'done' && o.status !== 'missed')
+        ];
+        
+        // Remove duplicates from urgentItems
+        const uniqueUrgent = Array.from(new Map(urgentItems.map(item => [item.id, item])).values());
+        
+        // 3-column layout
+        let html = '<div class="columns-container">';
+        
+        // Left column - Urgent
+        html += '<div class="column urgent-column">';
+        html += '<div class="column-header">Urgent</div>';
+        if (uniqueUrgent.length > 0) {
+            html += '<div class="column-content">';
+            uniqueUrgent.forEach(obligation => {
+                html += this.renderItem(obligation, true); // Pass true for isUrgent
+            });
+            html += '</div>';
+        } else {
+            html += '<div class="column-empty">All clear!</div>';
         }
-        if (groups.now.length > 0) {
-            html += this.renderGroup('Now', groups.now, 'now');
+        html += '</div>';
+        
+        // Middle column - Soon
+        html += '<div class="column soon-column">';
+        html += '<div class="column-header">Soon</div>';
+        if (groups.soon.length > 0) {
+            html += '<div class="column-content">';
+            groups.soon.forEach(obligation => {
+                html += this.renderItem(obligation, false);
+            });
+            html += '</div>';
+        } else {
+            html += '<div class="column-empty">Nothing scheduled</div>';
         }
-        if (groups.today.length > 0) {
-            html += this.renderGroup('Today', groups.today, 'today');
-        }
-        if (groups.thisWeek.length > 0) {
-            html += this.renderGroup('This week', groups.thisWeek, 'this-week');
-        }
+        html += '</div>';
+        
+        // Right column - Later
+        html += '<div class="column later-column">';
+        html += '<div class="column-header">Later</div>';
         if (groups.later.length > 0) {
-            html += this.renderGroup('Later', groups.later, 'later');
+            html += '<div class="column-content">';
+            groups.later.forEach(obligation => {
+                html += this.renderItem(obligation, false);
+            });
+            html += '</div>';
+        } else {
+            html += '<div class="column-empty">Nothing planned</div>';
         }
-
-        list.innerHTML = html || '<div class="empty-state">All obligations completed!</div>';
+        html += '</div>';
+        
+        html += '</div>';
+        
+        list.innerHTML = html;
     }
 
-    renderGroup(title, obligations, className) {
-        const items = obligations.map(obligation => {
-            const timeDisplay = this.formatTimeWindow(obligation);
-            const isMissed = obligation.status === 'missed';
-            const isDone = obligation.status === 'done';
-            const duration = obligation.estimated_duration ? `${obligation.estimated_duration} min` : null;
-            const dueDate = obligation.due_at ? this.formatForDateTimeInput(obligation.due_at) : '';
-            
-            return `
-                <div class="obligation-item ${isMissed ? 'missed' : ''} ${isDone ? 'done' : ''} ${className}" data-id="${obligation.id}">
-                    <input 
-                        type="checkbox" 
-                        class="obligation-checkbox" 
-                        ${isDone ? 'checked' : ''}
-                        onchange="app.toggleDone('${obligation.id}')"
-                    />
-                    <div class="obligation-content">
-                        <div class="obligation-title">${this.escapeHtml(obligation.title)}</div>
-                        <div class="obligation-meta">
-                            <span class="obligation-time" data-action="edit-date" data-id="${obligation.id}" data-date="${dueDate}" title="Click to edit due date">${timeDisplay}</span>
-                            ${duration ? `<span class="obligation-duration" data-action="edit-duration" data-id="${obligation.id}" data-duration="${obligation.estimated_duration}" title="Click to edit duration">${duration}</span>` : '<span class="obligation-duration" data-action="edit-duration" data-id="' + obligation.id + '" data-duration="" title="Click to add duration">+ duration</span>'}
-                        </div>
+    renderItem(obligation, isUrgent = false) {
+        const timeDisplay = this.formatTimeWindow(obligation);
+        const isDone = obligation.status === 'done';
+        const duration = obligation.estimated_duration ? `${obligation.estimated_duration} min` : null;
+        const dueDate = obligation.due_at ? this.formatForDateTimeInput(obligation.due_at) : '';
+        
+        return `
+            <div class="obligation-item ${isUrgent ? 'urgent' : ''} ${isDone ? 'done' : ''}" data-id="${obligation.id}">
+                <input 
+                    type="checkbox" 
+                    class="obligation-checkbox" 
+                    ${isDone ? 'checked' : ''}
+                    onchange="app.toggleDone('${obligation.id}')"
+                />
+                <div class="obligation-content">
+                    <div class="obligation-title">${this.escapeHtml(obligation.title)}</div>
+                    <div class="obligation-meta">
+                        <span class="obligation-time" data-action="edit-date" data-id="${obligation.id}" data-date="${dueDate}" title="Click to edit due date">${timeDisplay}</span>
+                        ${duration ? `<span class="obligation-duration" data-action="edit-duration" data-id="${obligation.id}" data-duration="${obligation.estimated_duration}" title="Click to edit duration">${duration}</span>` : '<span class="obligation-duration" data-action="edit-duration" data-id="' + obligation.id + '" data-duration="" title="Click to add duration">+ duration</span>'}
                     </div>
                 </div>
-            `;
-        }).join('');
-
-        return `
-            <div class="obligation-group">
-                <div class="group-header">${title}</div>
-                ${items}
             </div>
         `;
     }

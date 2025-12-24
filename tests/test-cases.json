@@ -142,6 +142,19 @@
         "confidence": "low"
       },
       "notes": "No date specified, needs clarification. Low confidence."
+    },
+    {
+      "input": "tax return due in a month",
+      "expected": {
+        "title": "tax return due",
+        "date_window": "2026-01-23",
+        "task_type": "business",
+        "due_time": "17:00",
+        "estimated_duration": null,
+        "urgency": "normal",
+        "confidence": "high"
+      },
+      "notes": "Dec 23 + 1 month = Jan 23, 2026. 'Due in X' defaults to end of day (5pm). Business task."
     }
   ],
   "metadata": {
