@@ -1,0 +1,25 @@
+{
+    "testCases": [
+      {
+        "input": "cancel wine club membership mid feb",
+        "expected": {
+          "title": "Cancel wine club membership",
+          "date_window": "2026-02-15",
+          "task_type": "business",
+          "due_time": "09:00",
+          "estimated_duration": null,
+          "urgency": "normal",
+          "confidence": "high"
+        },
+        "notes": "Should infer February of next year since we're in December"
+      }
+    ],
+    "metadata": {
+        "currentDate": "2025-12-23",
+        "timestamp": "2025-12-23T10:00:00-05:00",
+        "timezone": "America/New_York",
+        "description": "Test cases for iterating on the system prompt. Edit inputs and expected outputs as needed. Timestamp is in EST (UTC-5)."
+    }
+  }
+  
+  

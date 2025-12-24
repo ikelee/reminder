@@ -1,0 +1,154 @@
+{
+  "testCases": [
+    {
+      "input": "cancel wine club membership mid feb",
+      "expected": {
+        "title": "Cancel wine club membership",
+        "date_window": "2026-02-15",
+        "task_type": "business",
+        "due_time": "09:00",
+        "estimated_duration": null,
+        "urgency": "normal",
+        "confidence": "high"
+      },
+      "notes": "mid feb = Feb 15, 2026 (next year since we're in Dec). Business task defaults to 9am."
+    },
+    {
+      "input": "dinner with Sarah Friday",
+      "expected": {
+        "title": "Dinner with Sarah",
+        "date_window": "2025-12-26",
+        "task_type": "social",
+        "due_time": "18:00",
+        "estimated_duration": null,
+        "urgency": "normal",
+        "confidence": "high"
+      },
+      "notes": "Dec 23 (Tue) -> next Friday = Dec 26. Social dinner defaults to 6pm."
+    },
+    {
+      "input": "call dentist tomorrow at 2pm",
+      "expected": {
+        "title": "call dentist tomorrow at 2pm",
+        "date_window": "2025-12-24",
+        "task_type": "business",
+        "due_time": "14:00",
+        "estimated_duration": 15,
+        "urgency": "normal",
+        "confidence": "high"
+      },
+      "notes": "Tomorrow = Dec 24. Explicit time 2pm. Business call to company. Normal urgency (just a reminder)."
+    },
+    {
+      "input": "call dentist for tomorrow at 2pm",
+      "expected": {
+        "title": "Call dentist for appointment tomorrow at 2pm",
+        "date_window": "2025-12-23",
+        "task_type": "business",
+        "due_time": "15:30",
+        "estimated_duration": 15,
+        "urgency": "immediate",
+        "confidence": "high"
+      },
+      "notes": "'for tomorrow' = scheduling soon, URGENT. Due NOW (Dec 23 3:30pm). Title preserves appointment context."
+    },
+    {
+      "input": "gym session next week",
+      "expected": {
+        "title": "Gym session",
+        "date_window": "2025-12-29",
+        "task_type": "personal",
+        "due_time": "19:00",
+        "estimated_duration": null,
+        "urgency": "normal",
+        "confidence": "high"
+      },
+      "notes": "Dec 23 (Tue) -> next week starts Monday Dec 29. Personal task defaults to 7pm."
+    },
+    {
+      "input": "quick call with John in 3 days",
+      "expected": {
+        "title": "Quick call with John",
+        "date_window": "2025-12-26",
+        "task_type": "personal",
+        "due_time": "19:00",
+        "estimated_duration": 10,
+        "urgency": "normal",
+        "confidence": "high"
+      },
+      "notes": "Dec 23 + 3 days = Dec 26. Call with person (John) = personal, 7pm. Quick call = ~10 min."
+    },
+    {
+      "input": "lunch meeting with client Jan 10",
+      "expected": {
+        "title": "Lunch meeting with client",
+        "date_window": "2026-01-10",
+        "task_type": "business",
+        "due_time": "12:00",
+        "estimated_duration": 60,
+        "urgency": "normal",
+        "confidence": "high"
+      },
+      "notes": "Jan 10 = 2026 (next occurrence). Lunch = noon. Business meeting = ~60 min."
+    },
+    {
+      "input": "practice guitar this weekend",
+      "expected": {
+        "title": "Practice guitar",
+        "date_window": "2025-12-27",
+        "task_type": "personal",
+        "due_time": "09:00",
+        "estimated_duration": null,
+        "urgency": "normal",
+        "confidence": "high"
+      },
+      "notes": "Dec 23 (Tue) -> this weekend = Saturday Dec 27. Weekend tasks default to 9am."
+    },
+    {
+      "input": "submit tax forms by end of month",
+      "expected": {
+        "title": "Submit tax forms",
+        "date_window": "2025-12-31",
+        "task_type": "business",
+        "due_time": "17:00",
+        "estimated_duration": null,
+        "urgency": "normal",
+        "confidence": "medium"
+      },
+      "notes": "End of month = Dec 31. Business task, end of day = 5pm. Medium confidence (fuzzy deadline)."
+    },
+    {
+      "input": "brunch with mom Sunday morning",
+      "expected": {
+        "title": "Brunch with mom",
+        "date_window": "2025-12-28",
+        "task_type": "social",
+        "due_time": "11:00",
+        "estimated_duration": null,
+        "urgency": "normal",
+        "confidence": "high"
+      },
+      "notes": "Dec 23 (Tue) -> next Sunday = Dec 28. Brunch = social, morning = 11am."
+    },
+    {
+      "input": "schedule doctor appointment",
+      "expected": {
+        "title": "Schedule doctor appointment",
+        "date_window": null,
+        "task_type": "business",
+        "due_time": null,
+        "estimated_duration": null,
+        "urgency": "normal",
+        "confidence": "low"
+      },
+      "notes": "No date specified, needs clarification. Low confidence."
+    }
+  ],
+  "metadata": {
+    "currentDate": "2025-12-23",
+    "timestamp": "2025-12-23T15:30:00-08:00",
+    "timezone": "America/Los_Angeles",
+    "dayOfWeek": "Tuesday",
+    "description": "Test cases for AI parser. Timestamp is Dec 23, 2025 at 3:30 PM PST (UTC-8)."
+  }
+}

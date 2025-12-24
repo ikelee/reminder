@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obligation Capture</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="input-section">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="obligation-input" 
+                    placeholder="Enter obligation (e.g., 'Call dentist next week' or 'Dinner with Sarah Friday')"
+                    autofocus
+                />
+                <div id="voice-indicator" class="voice-indicator" title="Voice input - Press Alt+M / Cmd+M to toggle">🎤</div>
+                <div id="loading-spinner" class="spinner" style="display: none;"></div>
+            </div>
+            <div class="input-hint">
+                <span class="voice-hint">🎤 Voice: Press <kbd>Alt+M</kbd> / <kbd>Cmd+M</kbd> or <kbd>Ctrl+Space</kbd> / <kbd>Cmd+Space</kbd> to speak</span>
+                <button id="voice-help-btn" class="voice-help-btn" title="Show voice input help">?</button>
+            </div>
+            <div id="voice-help-details" class="voice-help-details hidden">
+                <div class="voice-help-content">
+                    <h4>Voice Input Guide</h4>
+                    <ul>
+                        <li><strong>Keyboard shortcuts:</strong> Press <kbd>Alt+M</kbd> (Windows/Linux) or <kbd>Cmd+M</kbd> (Mac) to toggle recording. Alternatively, use <kbd>Ctrl+Space</kbd> (Windows/Linux) or <kbd>Cmd+Space</kbd> (Mac).</li>
+                        <li><strong>Real-time transcription:</strong> Text appears in the input field as you speak.</li>
+                        <li><strong>Stop recording:</strong> Press the same shortcut again to stop recording.</li>
+                        <li><strong>Submit:</strong> After recording, press <kbd>Enter</kbd> to submit or edit the text first.</li>
+                        <li><strong>Browser support:</strong> Works in Chrome, Edge, and Safari. Requires microphone permission.</li>
+                    </ul>
+                    <button id="voice-help-close" class="voice-help-close">Close</button>
+                </div>
+            </div>
+        </div>
+        <div id="followup-section" class="followup-section hidden">
+            <p>When is this due?</p>
+            <input type="text" id="followup-input" placeholder="Enter date/time" />
+            <button id="followup-submit">Submit</button>
+            <button id="followup-cancel">Cancel</button>
+        </div>
+        <div id="obligation-list" class="obligation-list"></div>
+    </div>
+    <script src="voiceInput.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

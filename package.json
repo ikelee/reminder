@@ -1,0 +1,24 @@
+{
+  "name": "reminder-app",
+  "version": "1.0.0",
+  "description": "AI-powered obligation reminder app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "cli": "node src/cli/cli.js",
+    "test": "node tests/test-runner.js",
+    "test:file": "node tests/test-runner.js",
+    "test:date": "node tests/dateUtils.test.js"
+  },
+  "bin": {
+    "reminder": "./src/cli/cli.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
+
