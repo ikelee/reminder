@@ -4,12 +4,16 @@
 
 const fs = require('fs');
 const path = require('path');
+const { emit_metric } = require('../helpers/metrics');
 
 class ObligationManager {
     constructor() {
         this.dataFile = path.join(__dirname, '..', '..', 'data', 'obligations.json');
         this.ensureDataDir();
         this.obligations = this.loadObligations();
+        this.autoAcceptDelay = 30 * 1000; // 30 seconds in milliseconds
+        this.immediateDeleteThreshold = 10 * 1000; // 10 seconds for "immediate" deletion
+        this.autoAcceptTimers = new Map(); // Track timers for auto-acceptance
     }
 
     ensureDataDir() {
@@ -23,7 +27,38 @@ class ObligationManager {
         try {
             if (fs.existsSync(this.dataFile)) {
                 const data = fs.readFileSync(this.dataFile, 'utf8');
-                return JSON.parse(data);
+                const obligations = JSON.parse(data);
+                
+                // Migrate old obligations to include metrics if missing
+                let needsSave = false;
+                obligations.forEach(obligation => {
+                    if (!obligation.metrics) {
+                        obligation.metrics = {
+                            auto_accepted: false,
+                            date_changed: false,
+                            time_changed: false,
+                            duration_changed: false,
+                            task_type_changed: false,
+                            deleted_immediately: false
+                        };
+                        needsSave = true;
+                    }
+                    if (!obligation._original) {
+                        obligation._original = {
+                            due_at: obligation.due_at,
+                            estimated_duration: obligation.estimated_duration,
+                            task_type: obligation.task_type || null
+                        };
+                        needsSave = true;
+                    }
+                });
+                
+                if (needsSave) {
+                    this.obligations = obligations;
+                    this.saveObligations();
+                }
+                
+                return obligations;
             }
         } catch (error) {
             console.error('Error loading obligations:', error);
@@ -46,25 +81,128 @@ class ObligationManager {
     }
 
     add(obligationData) {
+        const now = Date.now();
         const obligation = {
-            id: Date.now().toString(),
+            id: now.toString(),
             title: obligationData.title || 'Untitled obligation',
             due_at: obligationData.due_at,
             estimated_duration: obligationData.estimated_duration,
+            task_type: obligationData.task_type || null,
             urgency: obligationData.urgency,
             status: 'pending',
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            // Metrics fields
+            metrics: {
+                auto_accepted: false,
+                date_changed: false,
+                time_changed: false,
+                duration_changed: false,
+                task_type_changed: false,
+                deleted_immediately: false
+            },
+            // Store original values for change tracking
+            _original: {
+                due_at: obligationData.due_at,
+                estimated_duration: obligationData.estimated_duration,
+                task_type: obligationData.task_type || null
+            }
         };
 
         this.obligations.push(obligation);
         this.saveObligations();
+        
+        // Set timer for auto-acceptance
+        const timer = setTimeout(() => {
+            this.checkAutoAccept(obligation.id);
+        }, this.autoAcceptDelay);
+        this.autoAcceptTimers.set(obligation.id, timer);
+        
         return obligation;
     }
 
     update(id, updates) {
         const obligation = this.obligations.find(o => o.id === id);
         if (obligation) {
+            // Clear auto-accept timer if it exists (obligation is being edited)
+            const timer = this.autoAcceptTimers.get(id);
+            if (timer) {
+                clearTimeout(timer);
+                this.autoAcceptTimers.delete(id);
+            }
+            
+            // Track changes before updating
+            const oldDueAt = obligation.due_at;
+            const oldDuration = obligation.estimated_duration;
+            const oldTaskType = obligation.task_type;
+            
+            // Extract date and time from due_at for comparison
+            const extractDate = (isoString) => {
+                if (!isoString) return null;
+                return isoString.split('T')[0];
+            };
+            
+            const extractTime = (isoString) => {
+                if (!isoString) return null;
+                const timePart = isoString.split('T')[1];
+                if (!timePart) return null;
+                return timePart.substring(0, 5); // HH:mm
+            };
+            
+            const oldDate = extractDate(oldDueAt);
+            const oldTime = extractTime(oldDueAt);
+            
+            // Apply updates
             Object.assign(obligation, updates);
+            
+            // Track metric changes
+            if (updates.due_at !== undefined) {
+                const newDate = extractDate(updates.due_at);
+                const newTime = extractTime(updates.due_at);
+                
+                if (oldDate !== newDate) {
+                    obligation.metrics.date_changed = true;
+                    emit_metric('date_changed', {
+                        obligation_id: id,
+                        old_date: oldDate,
+                        new_date: newDate,
+                        title: obligation.title
+                    });
+                }
+                
+                if (oldTime !== newTime && oldDate === newDate) {
+                    // Time changed but date stayed the same
+                    obligation.metrics.time_changed = true;
+                    emit_metric('time_changed', {
+                        obligation_id: id,
+                        old_time: oldTime,
+                        new_time: newTime,
+                        title: obligation.title
+                    });
+                } else if (oldDate !== newDate) {
+                    // Date changed, so time also effectively changed
+                    obligation.metrics.time_changed = true;
+                }
+            }
+            
+            if (updates.estimated_duration !== undefined && oldDuration !== updates.estimated_duration) {
+                obligation.metrics.duration_changed = true;
+                emit_metric('duration_changed', {
+                    obligation_id: id,
+                    old_duration: oldDuration,
+                    new_duration: updates.estimated_duration,
+                    title: obligation.title
+                });
+            }
+            
+            if (updates.task_type !== undefined && oldTaskType !== updates.task_type) {
+                obligation.metrics.task_type_changed = true;
+                emit_metric('task_type_changed', {
+                    obligation_id: id,
+                    old_task_type: oldTaskType,
+                    new_task_type: updates.task_type,
+                    title: obligation.title
+                });
+            }
             
             // Recalculate status if due_at was updated
             if (updates.due_at !== undefined && obligation.status !== 'done') {
@@ -98,10 +236,56 @@ class ObligationManager {
         const index = this.obligations.findIndex(o => o.id === id);
         if (index !== -1) {
             const deleted = this.obligations.splice(index, 1)[0];
+            
+            // Clear auto-accept timer if it exists
+            const timer = this.autoAcceptTimers.get(id);
+            if (timer) {
+                clearTimeout(timer);
+                this.autoAcceptTimers.delete(id);
+            }
+            
+            // Check if deleted immediately (within threshold of creation)
+            const createdTime = new Date(deleted.created_at).getTime();
+            const now = Date.now();
+            const timeSinceCreation = now - createdTime;
+            
+            if (timeSinceCreation < this.immediateDeleteThreshold) {
+                deleted.metrics.deleted_immediately = true;
+                emit_metric('deleted_immediately', {
+                    obligation_id: id,
+                    time_since_creation_ms: timeSinceCreation,
+                    title: deleted.title
+                });
+            }
+            
             this.saveObligations();
             return deleted;
         }
         return null;
+    }
+    
+    checkAutoAccept(id) {
+        const obligation = this.obligations.find(o => o.id === id);
+        if (!obligation) return;
+        
+        // Only mark as auto-accepted if no edits have been made
+        const hasEdits = obligation.metrics.date_changed || 
+                         obligation.metrics.time_changed || 
+                         obligation.metrics.duration_changed || 
+                         obligation.metrics.task_type_changed;
+        
+        if (!hasEdits && !obligation.metrics.auto_accepted) {
+            obligation.metrics.auto_accepted = true;
+            emit_metric('auto_accepted', {
+                obligation_id: id,
+                title: obligation.title,
+                time_since_creation_ms: this.autoAcceptDelay
+            });
+            this.saveObligations();
+        }
+        
+        // Clean up timer
+        this.autoAcceptTimers.delete(id);
     }
 
     updateMissedStatus() {
@@ -180,11 +364,24 @@ class ObligationManager {
             { title: 'Annual review meeting', due_at: createISO(2026, 3, 15, 14, 0), task_type: 'business', estimated_duration: 90, urgency: 'normal', status: 'pending' },
         ];
 
-        // Add IDs and created_at to samples
+        // Add IDs, created_at, and metrics to samples
         const nowMs = Date.now();
         samples.forEach((sample, index) => {
             sample.id = (nowMs + index).toString();
             sample.created_at = new Date(nowMs + index).toISOString();
+            sample.metrics = {
+                auto_accepted: false,
+                date_changed: false,
+                time_changed: false,
+                duration_changed: false,
+                task_type_changed: false,
+                deleted_immediately: false
+            };
+            sample._original = {
+                due_at: sample.due_at,
+                estimated_duration: sample.estimated_duration,
+                task_type: sample.task_type || null
+            };
         });
 
         this.obligations = samples;

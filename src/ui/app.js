@@ -14,6 +14,7 @@ class ObligationApp {
     init() {
         this.setupEventListeners();
         this.setupVoiceInput();
+        this.setupNavigation();
         this.loadObligations();
         this.render();
         
@@ -21,6 +22,34 @@ class ObligationApp {
         setInterval(() => {
             this.loadObligations();
         }, 60000);
+    }
+
+    setupNavigation() {
+        // Handle navigation clicks
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const view = item.dataset.view;
+                this.switchView(view);
+                
+                // Load data when switching views
+                if (view === 'habits' && typeof habitsApp !== 'undefined') {
+                    habitsApp.loadHabits();
+                }
+            });
+        });
+    }
+
+    switchView(viewName) {
+        // Update navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.view === viewName);
+        });
+
+        // Update views
+        document.querySelectorAll('.view').forEach(view => {
+            view.classList.toggle('active', view.id === `${viewName}-view`);
+        });
     }
 
     setupEventListeners() {

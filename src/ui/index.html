@@ -7,45 +7,144 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="input-section">
-            <div class="input-wrapper">
-                <input 
-                    type="text" 
-                    id="obligation-input" 
-                    placeholder="Enter obligation (e.g., 'Call dentist next week' or 'Dinner with Sarah Friday')"
-                    autofocus
-                />
-                <div id="voice-indicator" class="voice-indicator" title="Voice input - Press Alt+M / Cmd+M to toggle">🎤</div>
-                <div id="loading-spinner" class="spinner" style="display: none;"></div>
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="nav-item active" data-view="obligations">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Obligations</span>
             </div>
-            <div class="input-hint">
-                <span class="voice-hint">🎤 Voice: Press <kbd>Alt+M</kbd> / <kbd>Cmd+M</kbd> or <kbd>Ctrl+Space</kbd> / <kbd>Cmd+Space</kbd> to speak</span>
-                <button id="voice-help-btn" class="voice-help-btn" title="Show voice input help">?</button>
+            <div class="nav-item" data-view="productivity">
+                <span class="nav-icon">⏰</span>
+                <span class="nav-label">Productivity</span>
             </div>
-            <div id="voice-help-details" class="voice-help-details hidden">
-                <div class="voice-help-content">
-                    <h4>Voice Input Guide</h4>
-                    <ul>
-                        <li><strong>Keyboard shortcuts:</strong> Press <kbd>Alt+M</kbd> (Windows/Linux) or <kbd>Cmd+M</kbd> (Mac) to toggle recording. Alternatively, use <kbd>Ctrl+Space</kbd> (Windows/Linux) or <kbd>Cmd+Space</kbd> (Mac).</li>
-                        <li><strong>Real-time transcription:</strong> Text appears in the input field as you speak.</li>
-                        <li><strong>Stop recording:</strong> Press the same shortcut again to stop recording.</li>
-                        <li><strong>Submit:</strong> After recording, press <kbd>Enter</kbd> to submit or edit the text first.</li>
-                        <li><strong>Browser support:</strong> Works in Chrome, Edge, and Safari. Requires microphone permission.</li>
-                    </ul>
-                    <button id="voice-help-close" class="voice-help-close">Close</button>
+            <div class="nav-item" data-view="habits">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-label">Habits</span>
+            </div>
+        </nav>
+        <div class="main-content">
+            <div id="obligations-view" class="view active">
+                <div class="container">
+                    <div class="input-section">
+                        <div class="input-wrapper">
+                            <input 
+                                type="text" 
+                                id="obligation-input" 
+                                placeholder="Enter obligation (e.g., 'Call dentist next week' or 'Dinner with Sarah Friday')"
+                                autofocus
+                            />
+                            <div id="voice-indicator" class="voice-indicator" title="Voice input - Press Alt+M / Cmd+M to toggle">🎤</div>
+                            <div id="loading-spinner" class="spinner" style="display: none;"></div>
+                        </div>
+                        <div class="input-hint">
+                            <span class="voice-hint">🎤 Voice: Press <kbd>Alt+M</kbd> / <kbd>Cmd+M</kbd> or <kbd>Ctrl+Space</kbd> / <kbd>Cmd+Space</kbd> to speak</span>
+                            <button id="voice-help-btn" class="voice-help-btn" title="Show voice input help">?</button>
+                        </div>
+                        <div id="voice-help-details" class="voice-help-details hidden">
+                            <div class="voice-help-content">
+                                <h4>Voice Input Guide</h4>
+                                <ul>
+                                    <li><strong>Keyboard shortcuts:</strong> Press <kbd>Alt+M</kbd> (Windows/Linux) or <kbd>Cmd+M</kbd> (Mac) to toggle recording. Alternatively, use <kbd>Ctrl+Space</kbd> (Windows/Linux) or <kbd>Cmd+Space</kbd> (Mac).</li>
+                                    <li><strong>Real-time transcription:</strong> Text appears in the input field as you speak.</li>
+                                    <li><strong>Stop recording:</strong> Press the same shortcut again to stop recording.</li>
+                                    <li><strong>Submit:</strong> After recording, press <kbd>Enter</kbd> to submit or edit the text first.</li>
+                                    <li><strong>Browser support:</strong> Works in Chrome, Edge, and Safari. Requires microphone permission.</li>
+                                </ul>
+                                <button id="voice-help-close" class="voice-help-close">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="followup-section" class="followup-section hidden">
+                        <p>When is this due?</p>
+                        <input type="text" id="followup-input" placeholder="Enter date/time" />
+                        <button id="followup-submit">Submit</button>
+                        <button id="followup-cancel">Cancel</button>
+                    </div>
+                    <div id="obligation-list" class="obligation-list"></div>
+                </div>
+            </div>
+            <div id="productivity-view" class="view">
+                <div class="productivity-container">
+                    <div class="productivity-header">
+                        <h1>Productivity Schedule</h1>
+                        <div class="week-navigation">
+                            <button id="prev-week" class="nav-button">← Previous Week</button>
+                            <input type="date" id="productivity-date" class="date-picker" />
+                            <button id="next-week" class="nav-button">Next Week →</button>
+                        </div>
+                    </div>
+                    <div class="productivity-content">
+                        <div id="productivity-blocks" class="productivity-blocks"></div>
+                        <div id="productivity-sidebar" class="productivity-sidebar">
+                            <h3>This Week</h3>
+                            <div id="week-reminders" class="week-reminders"></div>
+                            <div id="week-habits" class="week-habits"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="habits-view" class="view">
+                <div class="habits-container">
+                    <div class="habits-header">
+                        <h1>Habits</h1>
+                        <button id="add-habit-btn" class="add-habit-btn">+ Add Habit</button>
+                    </div>
+                    <div id="habits-list" class="habits-list"></div>
                 </div>
             </div>
         </div>
-        <div id="followup-section" class="followup-section hidden">
-            <p>When is this due?</p>
-            <input type="text" id="followup-input" placeholder="Enter date/time" />
-            <button id="followup-submit">Submit</button>
-            <button id="followup-cancel">Cancel</button>
-        </div>
-        <div id="obligation-list" class="obligation-list"></div>
     </div>
+
+    <!-- Habit Form Modal -->
+    <div id="habit-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="habit-modal-title">Add Habit</h2>
+                <button class="modal-close" id="habit-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-field">
+                    <label for="habit-name-input">Habit Name</label>
+                    <input type="text" id="habit-name-input" placeholder="e.g., Exercise, Reading" />
+                </div>
+                <div class="form-field">
+                    <label for="habit-hours-input">Hours per Week</label>
+                    <input type="number" id="habit-hours-input" placeholder="0" min="0" step="0.5" />
+                </div>
+                <div class="form-field">
+                    <label for="habit-default-length-input">Default Length (minutes)</label>
+                    <input type="number" id="habit-default-length-input" placeholder="60" min="1" step="1" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-cancel" id="habit-modal-cancel">Cancel</button>
+                <button class="modal-submit" id="habit-modal-submit">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Confirm</h2>
+                <button class="modal-close" id="confirm-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">Are you sure?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-cancel" id="confirm-modal-cancel">Cancel</button>
+                <button class="modal-submit" id="confirm-modal-submit">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <script src="voiceInput.js"></script>
     <script src="app.js"></script>
+    <script src="productivity.js"></script>
+    <script src="habits.js"></script>
 </body>
 </html>
