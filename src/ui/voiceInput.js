@@ -38,7 +38,11 @@ class VoiceInput {
             }
 
             // Update input field in real-time with interim results
-            const input = document.getElementById('obligation-input');
+            // Find the active input (ask-input or obligation-input)
+            const askView = document.getElementById('ask-view');
+            const isAskView = askView && askView.classList.contains('active');
+            const input = document.getElementById(isAskView ? 'ask-input' : 'obligation-input');
+            
             if (input && this.isRecording) {
                 // Initialize baseText on first result
                 if (this.baseText === undefined) {
@@ -77,7 +81,10 @@ class VoiceInput {
             this.updateUI();
             
             // Auto-submit when recording ends if there's text
-            const input = document.getElementById('obligation-input');
+            const askView = document.getElementById('ask-view');
+            const isAskView = askView && askView.classList.contains('active');
+            const input = document.getElementById(isAskView ? 'ask-input' : 'obligation-input');
+            
             if (input && input.value.trim()) {
                 // Trigger a custom event to submit
                 const submitEvent = new CustomEvent('voiceSubmit', { 
@@ -120,7 +127,10 @@ class VoiceInput {
 
         try {
             // Store current input value as base text, or clear if empty
-            const input = document.getElementById('obligation-input');
+            const askView = document.getElementById('ask-view');
+            const isAskView = askView && askView.classList.contains('active');
+            const input = document.getElementById(isAskView ? 'ask-input' : 'obligation-input');
+            
             if (input) {
                 this.baseText = input.value.trim();
                 if (!this.baseText) {
@@ -158,17 +168,24 @@ class VoiceInput {
 
     updateUI() {
         const indicator = document.getElementById('voice-indicator');
-        if (indicator) {
-            if (this.isRecording) {
-                indicator.classList.add('recording');
-                indicator.textContent = '🔴';
-                indicator.title = 'Recording... Press Alt+M / Cmd+M to stop';
-            } else {
-                indicator.classList.remove('recording');
-                indicator.textContent = '🎤';
-                indicator.title = 'Voice input - Press Alt+M / Cmd+M to start';
+        const askIndicator = document.getElementById('ask-voice-indicator');
+        
+        const updateIndicator = (ind) => {
+            if (ind) {
+                if (this.isRecording) {
+                    ind.classList.add('recording');
+                    ind.textContent = '🔴';
+                    ind.title = 'Recording... Press Alt+M / Cmd+M to stop';
+                } else {
+                    ind.classList.remove('recording');
+                    ind.textContent = '🎤';
+                    ind.title = 'Voice input - Press Alt+M / Cmd+M to start';
+                }
             }
-        }
+        };
+        
+        updateIndicator(indicator);
+        updateIndicator(askIndicator);
     }
 }
 

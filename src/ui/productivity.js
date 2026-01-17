@@ -517,15 +517,27 @@ class ProductivityApp {
             track.addEventListener('mousedown', (e) => {
                 // Don't start drag if clicking on a block or its children
                 if (e.target.closest('.time-block') || e.target.closest('.draggable-item')) {
-                    // If clicking on a block, edit it
+                    // If clicking on delete button, handle deletion
+                    if (e.target.classList.contains('block-delete')) {
+                        e.stopPropagation();
+                        const block = e.target.closest('.time-block');
+                        if (block) {
+                            const blockId = block.dataset.blockId;
+                            const date = block.dataset.date;
+                            this.deleteBlock(date, blockId);
+                        }
+                        return;
+                    }
+                    // If clicking on a block (not delete button), edit it
                     const block = e.target.closest('.time-block');
-                    if (block && !e.target.classList.contains('block-delete')) {
+                    if (block) {
+                        e.stopPropagation();
                         const blockId = block.dataset.blockId;
                         const date = block.dataset.date;
                         const daySchedule = this.schedule[date] || [];
                         const blockData = daySchedule.find(b => b.id === blockId);
                         if (blockData) {
-                            this.showEditBlockModal(blockData, date);
+                            this.showEditBlockTooltip(block, blockData, date);
                         }
                     }
                     return;
@@ -700,14 +712,17 @@ class ProductivityApp {
             trackRect = null;
         });
 
-        // Delete block buttons
-        document.querySelectorAll('.block-delete').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+        // Delete block buttons - use event delegation for dynamically created blocks
+        document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('block-delete')) {
                 e.stopPropagation();
+                e.preventDefault();
                 const blockId = e.target.dataset.blockId;
                 const date = e.target.dataset.date;
-                await this.deleteBlock(date, blockId);
-            });
+                if (blockId && date) {
+                    await this.deleteBlock(date, blockId);
+                }
+            }
         });
     }
 
@@ -903,6 +918,122 @@ class ProductivityApp {
         } else {
             console.warn('Block not found in schedule:', blockId);
         }
+    }
+
+    showEditBlockTooltip(blockElement, block, date) {
+        // Remove any existing tooltip
+        const existingTooltip = document.getElementById('block-edit-tooltip');
+        if (existingTooltip) {
+            existingTooltip.remove();
+        }
+
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.id = 'block-edit-tooltip';
+        tooltip.className = 'block-edit-tooltip';
+        
+        // Position tooltip near the block
+        const rect = blockElement.getBoundingClientRect();
+        const scrollY = window.scrollY;
+        const scrollX = window.scrollX;
+        
+        // Calculate time values
+        const startTime = block.start_time || '09:00';
+        const endTime = block.end_time || '10:00';
+        const [startHour, startMin] = startTime.split(':').map(Number);
+        const [endHour, endMin] = endTime.split(':').map(Number);
+        
+        tooltip.innerHTML = `
+            <div class="tooltip-content">
+                <div class="tooltip-header">
+                    <h3>Edit Block</h3>
+                    <button class="tooltip-close" onclick="this.closest('.block-edit-tooltip').remove()">×</button>
+                </div>
+                <div class="tooltip-body">
+                    <div class="tooltip-field">
+                        <label>Content</label>
+                        <input type="text" id="tooltip-content-input" value="${this.escapeHtml(block.content || '')}" />
+                    </div>
+                    <div class="tooltip-row">
+                        <div class="tooltip-field">
+                            <label>Start Time</label>
+                            <input type="time" id="tooltip-start-time" value="${startTime}" />
+                        </div>
+                        <div class="tooltip-field">
+                            <label>End Time</label>
+                            <input type="time" id="tooltip-end-time" value="${endTime}" />
+                        </div>
+                    </div>
+                    <div class="tooltip-actions">
+                        <button class="tooltip-save-btn">Save</button>
+                        <button class="tooltip-delete-btn">Delete</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(tooltip);
+        
+        // Position tooltip
+        const tooltipRect = tooltip.getBoundingClientRect();
+        let top = rect.top + scrollY + (rect.height / 2) - (tooltipRect.height / 2);
+        let left = rect.right + scrollX + 20;
+        
+        // Adjust if tooltip goes off screen
+        if (left + tooltipRect.width > window.innerWidth + scrollX) {
+            left = rect.left + scrollX - tooltipRect.width - 20;
+        }
+        if (top + tooltipRect.height > window.innerHeight + scrollY) {
+            top = window.innerHeight + scrollY - tooltipRect.height - 20;
+        }
+        if (top < scrollY) {
+            top = scrollY + 20;
+        }
+        
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+        
+        // Event listeners
+        const saveBtn = tooltip.querySelector('.tooltip-save-btn');
+        const deleteBtn = tooltip.querySelector('.tooltip-delete-btn');
+        const closeBtn = tooltip.querySelector('.tooltip-close');
+        
+        saveBtn.addEventListener('click', async () => {
+            const content = tooltip.querySelector('#tooltip-content-input').value.trim();
+            const startTime = tooltip.querySelector('#tooltip-start-time').value;
+            const endTime = tooltip.querySelector('#tooltip-end-time').value;
+            
+            if (content && startTime && endTime) {
+                await this.updateBlock(date, block.id, {
+                    content: content,
+                    start_time: startTime,
+                    end_time: endTime
+                });
+            }
+            tooltip.remove();
+        });
+        
+        deleteBtn.addEventListener('click', async () => {
+            await this.deleteBlock(date, block.id);
+            tooltip.remove();
+        });
+        
+        closeBtn.addEventListener('click', () => {
+            tooltip.remove();
+        });
+        
+        // Close on click outside
+        setTimeout(() => {
+            document.addEventListener('click', function closeTooltip(e) {
+                if (!tooltip.contains(e.target) && !blockElement.contains(e.target)) {
+                    tooltip.remove();
+                    document.removeEventListener('click', closeTooltip);
+                }
+            });
+        }, 100);
+        
+        // Focus first input
+        tooltip.querySelector('#tooltip-content-input').focus();
     }
 
     showEditBlockModal(block, date) {

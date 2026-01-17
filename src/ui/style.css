@@ -17,6 +17,29 @@ body {
     padding: 20px;
 }
 
+#ask-view.active {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+#ask-view .container {
+    width: 100%;
+    max-width: 700px;
+    margin: 0;
+    padding: 0;
+}
+
+.ask-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 32px;
+    text-align: center;
+}
+
 .input-section {
     margin-bottom: 32px;
     max-width: 700px;
@@ -62,8 +85,26 @@ body {
     opacity: 0.7;
 }
 
-#obligation-input:focus {
+#obligation-input:focus,
+#ask-input:focus {
     border-color: #4a90e2;
+}
+
+#ask-input {
+    flex: 1;
+    width: 100%;
+    padding: 14px 18px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#ask-input:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 .voice-indicator {
@@ -489,14 +530,106 @@ body {
 .app-layout {
     display: flex;
     min-height: 100vh;
+    position: relative;
+}
+
+.menu-toggle {
+    position: fixed;
+    top: 20px; /* Sidebar padding */
+    left: 20px;
+    z-index: 1001;
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    /* Center vertically within Ask row: 20px (sidebar padding) + 6px (half of nav-item padding) = 26px, then center the 40px icon */
+    transform: translateY(6px);
+}
+
+.menu-toggle:hover:not(:has(+ .sidebar:hover)) {
+    background: #f8f8f8;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.menu-toggle-icon {
+    font-size: 20px;
+    color: #333;
+    transition: color 0.3s ease;
+}
+
+/* Menu toggle icon color when inside Ask row */
+.menu-toggle:hover .menu-toggle-icon,
+.app-layout.sidebar-hovered .menu-toggle .menu-toggle-icon {
+    color: white;
 }
 
 .sidebar {
     width: 200px;
     background: #fff;
     border-right: 1px solid #e0e0e0;
-    padding: 20px 0;
+    padding: 20px 0 0 0;
     flex-shrink: 0;
+    position: fixed;
+    left: -200px;
+    top: 0;
+    height: 100vh;
+    transition: left 0.3s ease;
+    z-index: 1000;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    pointer-events: none; /* Disable pointer events when hidden */
+}
+
+/* When hovering over menu toggle, show sidebar and hide the toggle */
+.menu-toggle:hover {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.menu-toggle:hover + .sidebar {
+    left: 0;
+    pointer-events: auto;
+}
+
+.menu-toggle:hover + .sidebar ~ .main-content {
+    padding-left: 220px;
+}
+
+/* When hovering over sidebar, keep sidebar visible and hide menu toggle */
+.sidebar:hover {
+    left: 0;
+    pointer-events: auto;
+}
+
+.sidebar:hover ~ .main-content {
+    padding-left: 220px;
+}
+
+.sidebar:hover ~ .menu-toggle {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Hide menu toggle when sidebar is hovered - using class added by JS */
+.app-layout.sidebar-hovered .menu-toggle {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Menu toggle becomes invisible when sidebar is visible */
+.menu-toggle {
+    opacity: 1;
+    transition: all 0.3s ease, opacity 0.3s ease;
+}
+
+.sidebar .nav-item {
+    pointer-events: auto; /* Ensure nav items are always clickable when sidebar is visible */
 }
 
 .nav-item {
@@ -519,6 +652,33 @@ body {
     font-weight: 600;
 }
 
+/* Special styling for Ask nav item - make it stand out */
+.nav-item[data-view="ask"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-left-color: #764ba2;
+    margin-bottom: 20px;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    font-weight: 600;
+}
+
+.nav-item[data-view="ask"] .nav-icon,
+.nav-item[data-view="ask"] .nav-label {
+    color: white;
+}
+
+.nav-item[data-view="ask"]:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.nav-item[data-view="ask"].active {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    border-left-color: #fff;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+}
+
 .nav-icon {
     font-size: 20px;
 }
@@ -530,15 +690,28 @@ body {
 
 .main-content {
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
+    margin-left: 0;
+    transition: padding-left 0.3s ease;
+    padding-left: 80px; /* Space for menu toggle */
+    position: relative;
+}
+
+/* Shift content when sidebar is visible */
+.menu-toggle:hover + .sidebar ~ .main-content,
+.sidebar:hover ~ .main-content {
+    padding-left: 220px; /* Shift content when sidebar is visible */
 }
 
 .view {
-    display: none;
+    display: none !important;
 }
 
 .view.active {
-    display: block;
+    display: block !important;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .productivity-container {
@@ -935,6 +1108,18 @@ body {
 
 .time-block:hover .block-delete {
     opacity: 1;
+    z-index: 100;
+}
+
+.time-block {
+    pointer-events: auto;
+}
+
+.time-block .block-delete {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 100;
 }
 
 .block-delete:hover {
@@ -1265,4 +1450,224 @@ body {
 
 .hidden {
     display: none !important;
+}
+
+/* Obligation Form Styles */
+.obligation-form-section {
+    margin-bottom: 32px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.form-section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.obligation-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.form-row:first-child {
+    grid-template-columns: 1fr;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-field label .optional {
+    font-weight: 400;
+    color: #999;
+    font-size: 11px;
+}
+
+.form-field input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.form-field input:focus {
+    border-color: #4a90e2;
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.obligation-submit-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
+}
+
+.obligation-submit-btn:hover {
+    background: linear-gradient(135deg, #357abd 0%, #2a5f8f 100%);
+    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+    transform: translateY(-1px);
+}
+
+.obligation-submit-btn:active {
+    transform: translateY(0);
+}
+
+/* Block Edit Tooltip */
+.block-edit-tooltip {
+    position: absolute;
+    z-index: 10000;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    min-width: 320px;
+    max-width: 400px;
+}
+
+.tooltip-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.tooltip-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.tooltip-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+
+.tooltip-close:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.tooltip-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.tooltip-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tooltip-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tooltip-field input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.tooltip-field input:focus {
+    border-color: #4a90e2;
+}
+
+.tooltip-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.tooltip-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.tooltip-save-btn,
+.tooltip-delete-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tooltip-save-btn {
+    background: #4a90e2;
+    color: white;
+}
+
+.tooltip-save-btn:hover {
+    background: #357abd;
+}
+
+.tooltip-delete-btn {
+    background: #e74c3c;
+    color: white;
+}
+
+.tooltip-delete-btn:hover {
+    background: #c0392b;
 }

@@ -8,8 +8,15 @@
 </head>
 <body>
     <div class="app-layout">
+        <div class="menu-toggle">
+            <span class="menu-toggle-icon">☰</span>
+        </div>
         <nav class="sidebar">
-            <div class="nav-item active" data-view="obligations">
+            <div class="nav-item active" data-view="ask">
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">Ask</span>
+            </div>
+            <div class="nav-item" data-view="obligations">
                 <span class="nav-icon">📋</span>
                 <span class="nav-label">Obligations</span>
             </div>
@@ -23,24 +30,25 @@
             </div>
         </nav>
         <div class="main-content">
-            <div id="obligations-view" class="view active">
+            <div id="ask-view" class="view active">
                 <div class="container">
+                    <h2 class="ask-title">What do you want to achieve today?</h2>
                     <div class="input-section">
                         <div class="input-wrapper">
                             <input 
                                 type="text" 
-                                id="obligation-input" 
+                                id="ask-input" 
                                 placeholder="Enter obligation (e.g., 'Call dentist next week' or 'Dinner with Sarah Friday')"
                                 autofocus
                             />
-                            <div id="voice-indicator" class="voice-indicator" title="Voice input - Press Alt+M / Cmd+M to toggle">🎤</div>
-                            <div id="loading-spinner" class="spinner" style="display: none;"></div>
+                            <div id="ask-voice-indicator" class="voice-indicator" title="Voice input - Press Alt+M / Cmd+M to toggle">🎤</div>
+                            <div id="ask-loading-spinner" class="spinner" style="display: none;"></div>
                         </div>
                         <div class="input-hint">
                             <span class="voice-hint">🎤 Voice: Press <kbd>Alt+M</kbd> / <kbd>Cmd+M</kbd> or <kbd>Ctrl+Space</kbd> / <kbd>Cmd+Space</kbd> to speak</span>
-                            <button id="voice-help-btn" class="voice-help-btn" title="Show voice input help">?</button>
+                            <button id="ask-voice-help-btn" class="voice-help-btn" title="Show voice input help">?</button>
                         </div>
-                        <div id="voice-help-details" class="voice-help-details hidden">
+                        <div id="ask-voice-help-details" class="voice-help-details hidden">
                             <div class="voice-help-content">
                                 <h4>Voice Input Guide</h4>
                                 <ul>
@@ -50,15 +58,57 @@
                                     <li><strong>Submit:</strong> After recording, press <kbd>Enter</kbd> to submit or edit the text first.</li>
                                     <li><strong>Browser support:</strong> Works in Chrome, Edge, and Safari. Requires microphone permission.</li>
                                 </ul>
-                                <button id="voice-help-close" class="voice-help-close">Close</button>
+                                <button id="ask-voice-help-close" class="voice-help-close">Close</button>
                             </div>
                         </div>
                     </div>
-                    <div id="followup-section" class="followup-section hidden">
+                    <div id="ask-followup-section" class="followup-section hidden">
                         <p>When is this due?</p>
-                        <input type="text" id="followup-input" placeholder="Enter date/time" />
-                        <button id="followup-submit">Submit</button>
-                        <button id="followup-cancel">Cancel</button>
+                        <input type="text" id="ask-followup-input" placeholder="Enter date/time" />
+                        <button id="ask-followup-submit">Submit</button>
+                        <button id="ask-followup-cancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <div id="obligations-view" class="view">
+                <div class="container">
+                    <div class="obligation-form-section">
+                        <h2 class="form-section-title">Add New Obligation</h2>
+                        <div class="obligation-form">
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label for="obligation-title-input">Title</label>
+                                    <input 
+                                        type="text" 
+                                        id="obligation-title-input" 
+                                        placeholder="What needs to be done?"
+                                        autofocus
+                                    />
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label for="obligation-date-input">Due Date & Time</label>
+                                    <input 
+                                        type="datetime-local" 
+                                        id="obligation-date-input"
+                                    />
+                                </div>
+                                <div class="form-field">
+                                    <label for="obligation-duration-input">Duration (minutes) <span class="optional">Optional</span></label>
+                                    <input 
+                                        type="number" 
+                                        id="obligation-duration-input" 
+                                        placeholder="e.g. 15"
+                                        min="1"
+                                    />
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button id="obligation-submit-btn" class="obligation-submit-btn">Add Obligation</button>
+                                <div id="obligation-loading-spinner" class="spinner" style="display: none;"></div>
+                            </div>
+                        </div>
                     </div>
                     <div id="obligation-list" class="obligation-list"></div>
                 </div>

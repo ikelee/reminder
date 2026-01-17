@@ -25,77 +25,161 @@ class ObligationApp {
     }
 
     setupNavigation() {
-        // Handle navigation clicks
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const view = item.dataset.view;
-                this.switchView(view);
-                
-                // Load data when switching views
-                if (view === 'habits' && typeof habitsApp !== 'undefined') {
-                    habitsApp.loadHabits();
-                }
+        const sidebar = document.querySelector('.sidebar');
+        const menuToggle = document.querySelector('.menu-toggle');
+        const appLayout = document.querySelector('.app-layout');
+        
+        // Track sidebar hover state for CSS
+        if (sidebar && appLayout) {
+            sidebar.addEventListener('mouseenter', () => {
+                appLayout.classList.add('sidebar-hovered');
             });
+            sidebar.addEventListener('mouseleave', () => {
+                appLayout.classList.remove('sidebar-hovered');
+            });
+        }
+        
+        // Handle navigation clicks - use event delegation for dynamically created items
+        document.addEventListener('click', (e) => {
+            const navItem = e.target.closest('.nav-item');
+            if (navItem) {
+                e.preventDefault();
+                e.stopPropagation();
+                const view = navItem.dataset.view;
+                if (view) {
+                    this.switchView(view);
+                    this.closeSidebar();
+                    
+                    // Load data when switching views
+                    if (view === 'habits' && typeof habitsApp !== 'undefined') {
+                        habitsApp.loadHabits();
+                    }
+                    if (view === 'productivity' && typeof productivityApp !== 'undefined') {
+                        setTimeout(() => {
+                            productivityApp.loadSchedule();
+                        }, 100);
+                    }
+                }
+            }
         });
+    }
+
+    closeSidebar() {
+        // Force sidebar to close by removing hover classes and resetting styles
+        const sidebar = document.querySelector('.sidebar');
+        const menuToggle = document.querySelector('.menu-toggle');
+        const appLayout = document.querySelector('.app-layout');
+        
+        if (sidebar && menuToggle && appLayout) {
+            appLayout.classList.remove('sidebar-hovered');
+            // Force close by temporarily disabling pointer events
+            sidebar.style.pointerEvents = 'none';
+            sidebar.style.left = '-200px';
+            menuToggle.style.left = '20px';
+            // Reset after transition completes
+            setTimeout(() => {
+                sidebar.style.pointerEvents = '';
+                sidebar.style.left = '';
+                menuToggle.style.left = '';
+            }, 300);
+        }
     }
 
     switchView(viewName) {
         // Update navigation
         document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.toggle('active', item.dataset.view === viewName);
+            const isActive = item.dataset.view === viewName;
+            if (isActive) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
         });
 
-        // Update views
+        // Update views - hide all first, then show the active one
         document.querySelectorAll('.view').forEach(view => {
-            view.classList.toggle('active', view.id === `${viewName}-view`);
+            view.classList.remove('active');
         });
+        
+        const targetView = document.getElementById(`${viewName}-view`);
+        if (targetView) {
+            targetView.classList.add('active');
+        }
     }
 
     setupEventListeners() {
-        const input = document.getElementById('obligation-input');
-        const followupInput = document.getElementById('followup-input');
-        const followupSubmit = document.getElementById('followup-submit');
-        const followupCancel = document.getElementById('followup-cancel');
+        // Ask view input
+        const askInput = document.getElementById('ask-input');
+        const askFollowupInput = document.getElementById('ask-followup-input');
+        const askFollowupSubmit = document.getElementById('ask-followup-submit');
+        const askFollowupCancel = document.getElementById('ask-followup-cancel');
 
-        input.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                await this.handleInput(input.value);
-                input.value = '';
-            }
-        });
+        if (askInput) {
+            askInput.addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') {
+                    await this.handleInput(askInput.value);
+                    askInput.value = '';
+                }
+            });
+        }
 
-        followupSubmit.addEventListener('click', async () => {
-            const followupText = followupInput.value.trim();
-            if (followupText) {
-                await this.handleFollowup(followupText);
-            }
-        });
+        if (askFollowupSubmit) {
+            askFollowupSubmit.addEventListener('click', async () => {
+                const followupText = askFollowupInput.value.trim();
+                if (followupText) {
+                    await this.handleFollowup(followupText);
+                }
+            });
+        }
 
-        followupCancel.addEventListener('click', () => {
-            this.hideFollowup();
-        });
+        if (askFollowupCancel) {
+            askFollowupCancel.addEventListener('click', () => {
+                this.hideFollowup('ask');
+            });
+        }
 
-        followupInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                followupSubmit.click();
-            }
-        });
+        if (askFollowupInput) {
+            askFollowupInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    askFollowupSubmit.click();
+                }
+            });
+        }
 
-        // Voice help button
-        const voiceHelpBtn = document.getElementById('voice-help-btn');
-        const voiceHelpDetails = document.getElementById('voice-help-details');
-        const voiceHelpClose = document.getElementById('voice-help-close');
+        // Ask voice help button
+        const askVoiceHelpBtn = document.getElementById('ask-voice-help-btn');
+        const askVoiceHelpDetails = document.getElementById('ask-voice-help-details');
+        const askVoiceHelpClose = document.getElementById('ask-voice-help-close');
         
-        if (voiceHelpBtn && voiceHelpDetails) {
-            voiceHelpBtn.addEventListener('click', () => {
-                voiceHelpDetails.classList.toggle('hidden');
+        if (askVoiceHelpBtn && askVoiceHelpDetails) {
+            askVoiceHelpBtn.addEventListener('click', () => {
+                askVoiceHelpDetails.classList.toggle('hidden');
             });
         }
         
-        if (voiceHelpClose && voiceHelpDetails) {
-            voiceHelpClose.addEventListener('click', () => {
-                voiceHelpDetails.classList.add('hidden');
+        if (askVoiceHelpClose && askVoiceHelpDetails) {
+            askVoiceHelpClose.addEventListener('click', () => {
+                askVoiceHelpDetails.classList.add('hidden');
+            });
+        }
+
+        // Obligations view granular form
+        const obligationSubmitBtn = document.getElementById('obligation-submit-btn');
+        const obligationTitleInput = document.getElementById('obligation-title-input');
+        const obligationDateInput = document.getElementById('obligation-date-input');
+        const obligationDurationInput = document.getElementById('obligation-duration-input');
+
+        if (obligationSubmitBtn) {
+            obligationSubmitBtn.addEventListener('click', async () => {
+                await this.handleGranularObligation();
+            });
+        }
+
+        if (obligationTitleInput) {
+            obligationTitleInput.addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') {
+                    await this.handleGranularObligation();
+                }
             });
         }
 
@@ -137,18 +221,29 @@ class ObligationApp {
                 const text = e.detail.text;
                 if (text && !this.isLoading) {
                     await this.handleInput(text);
-                    // Clear the input field after voice submission
-                    const input = document.getElementById('obligation-input');
+                    // Clear the appropriate input field after voice submission
+                    const askInput = document.getElementById('ask-input');
+                    const obligationInput = document.getElementById('obligation-input');
+                    const askView = document.getElementById('ask-view');
+                    const input = (askView && askView.classList.contains('active')) ? askInput : obligationInput;
                     if (input) {
                         input.value = '';
                     }
                 }
             });
             
-            // Also allow clicking the microphone indicator to toggle
+            // Also allow clicking the microphone indicators to toggle
             const indicator = document.getElementById('voice-indicator');
+            const askIndicator = document.getElementById('ask-voice-indicator');
+            
             if (indicator && this.voiceInput) {
                 indicator.addEventListener('click', () => {
+                    this.voiceInput.toggleRecording();
+                });
+            }
+            
+            if (askIndicator && this.voiceInput) {
+                askIndicator.addEventListener('click', () => {
                     this.voiceInput.toggleRecording();
                 });
             }
@@ -169,8 +264,64 @@ class ObligationApp {
             const data = await response.json();
 
             if (data.needs_clarification) {
-                this.showFollowup(text, data.result);
+                // Determine which view we're in
+                const askView = document.getElementById('ask-view');
+                const view = askView && askView.classList.contains('active') ? 'ask' : 'obligations';
+                this.showFollowup(text, data.result, view);
             } else {
+                await this.loadObligations();
+            }
+        } catch (error) {
+            console.error('Error adding obligation:', error);
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    async handleGranularObligation() {
+        const titleInput = document.getElementById('obligation-title-input');
+        const dateInput = document.getElementById('obligation-date-input');
+        const durationInput = document.getElementById('obligation-duration-input');
+
+        const title = titleInput?.value.trim();
+        const date = dateInput?.value;
+        const duration = durationInput?.value.trim();
+
+        if (!title || this.isLoading) return;
+
+        this.setLoading(true);
+        try {
+            // Build the text string for the API
+            let text = title;
+            if (date) {
+                const dateObj = new Date(date);
+                const dateStr = dateObj.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                text += ` on ${dateStr}`;
+            }
+            if (duration) {
+                text += ` (${duration} minutes)`;
+            }
+
+            const response = await fetch('/api/obligations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+
+            const data = await response.json();
+
+            if (!data.needs_clarification) {
+                // Clear form
+                if (titleInput) titleInput.value = '';
+                if (dateInput) dateInput.value = '';
+                if (durationInput) durationInput.value = '';
                 await this.loadObligations();
             }
         } catch (error) {
@@ -200,32 +351,50 @@ class ObligationApp {
             } else {
                 await this.loadObligations();
             }
-            this.hideFollowup();
+            // Determine which view we're in
+            const askView = document.getElementById('ask-view');
+            const view = askView && askView.classList.contains('active') ? 'ask' : 'obligations';
+            this.hideFollowup(view);
         } catch (error) {
             console.error('Error adding obligation:', error);
-            this.hideFollowup();
+            const askView = document.getElementById('ask-view');
+            const view = askView && askView.classList.contains('active') ? 'ask' : 'obligations';
+            this.hideFollowup(view);
         } finally {
             this.setLoading(false);
         }
     }
 
-    showFollowup(text, result) {
+    showFollowup(text, result, view = 'obligations') {
         this.pendingText = text;
         this.pendingResult = result;
-        const followupSection = document.getElementById('followup-section');
-        const followupInput = document.getElementById('followup-input');
-        followupSection.classList.remove('hidden');
-        followupInput.focus();
+        const prefix = view === 'ask' ? 'ask-' : '';
+        const followupSection = document.getElementById(`${prefix}followup-section`);
+        const followupInput = document.getElementById(`${prefix}followup-input`);
+        if (followupSection && followupInput) {
+            followupSection.classList.remove('hidden');
+            followupInput.focus();
+        }
     }
 
-    hideFollowup() {
-        const followupSection = document.getElementById('followup-section');
-        const followupInput = document.getElementById('followup-input');
-        followupSection.classList.add('hidden');
-        followupInput.value = '';
+    hideFollowup(view = 'obligations') {
+        const prefix = view === 'ask' ? 'ask-' : '';
+        const followupSection = document.getElementById(`${prefix}followup-section`);
+        const followupInput = document.getElementById(`${prefix}followup-input`);
+        if (followupSection && followupInput) {
+            followupSection.classList.add('hidden');
+            followupInput.value = '';
+        }
         this.pendingText = null;
         this.pendingResult = null;
-        document.getElementById('obligation-input').focus();
+        
+        // Focus the appropriate input
+        const input = view === 'ask' 
+            ? document.getElementById('ask-input')
+            : document.getElementById('obligation-input');
+        if (input) {
+            input.focus();
+        }
     }
 
     async loadObligations() {
@@ -643,21 +812,57 @@ class ObligationApp {
     setLoading(loading) {
         this.isLoading = loading;
         const input = document.getElementById('obligation-input');
+        const askInput = document.getElementById('ask-input');
+        const obligationTitleInput = document.getElementById('obligation-title-input');
+        const obligationDateInput = document.getElementById('obligation-date-input');
+        const obligationDurationInput = document.getElementById('obligation-duration-input');
+        const obligationSubmitBtn = document.getElementById('obligation-submit-btn');
         const followupInput = document.getElementById('followup-input');
+        const askFollowupInput = document.getElementById('ask-followup-input');
         const followupSubmit = document.getElementById('followup-submit');
+        const askFollowupSubmit = document.getElementById('ask-followup-submit');
         const spinner = document.getElementById('loading-spinner');
+        const askSpinner = document.getElementById('ask-loading-spinner');
+        const obligationSpinner = document.getElementById('obligation-loading-spinner');
         
         if (input) {
             input.disabled = loading;
         }
+        if (askInput) {
+            askInput.disabled = loading;
+        }
+        if (obligationTitleInput) {
+            obligationTitleInput.disabled = loading;
+        }
+        if (obligationDateInput) {
+            obligationDateInput.disabled = loading;
+        }
+        if (obligationDurationInput) {
+            obligationDurationInput.disabled = loading;
+        }
+        if (obligationSubmitBtn) {
+            obligationSubmitBtn.disabled = loading;
+        }
         if (followupInput) {
             followupInput.disabled = loading;
+        }
+        if (askFollowupInput) {
+            askFollowupInput.disabled = loading;
         }
         if (followupSubmit) {
             followupSubmit.disabled = loading;
         }
+        if (askFollowupSubmit) {
+            askFollowupSubmit.disabled = loading;
+        }
         if (spinner) {
             spinner.style.display = loading ? 'block' : 'none';
+        }
+        if (askSpinner) {
+            askSpinner.style.display = loading ? 'block' : 'none';
+        }
+        if (obligationSpinner) {
+            obligationSpinner.style.display = loading ? 'block' : 'none';
         }
     }
 }
